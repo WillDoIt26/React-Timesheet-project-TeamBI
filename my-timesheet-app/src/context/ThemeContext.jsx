@@ -1,0 +1,51 @@
+// src/context/ThemeContext.jsx
+
+import { createContext, useState, useMemo, useContext } from 'react';
+import { createTheme } from '@mui/material/styles';
+
+const ThemeModeContext = createContext({ toggleColorMode: () => {} });
+
+export const ThemeModeProvider = ({ children }) => {
+    const [mode, setMode] = useState('light');
+
+    const colorMode = useMemo(() => ({
+        toggleColorMode: () => {
+            setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+        },
+    }), []);
+
+    const theme = useMemo(() =>
+        createTheme({
+            palette: {
+                mode,
+                ...(mode === 'light'
+                    ? { // light mode values
+                        primary: { main: '#1976d2' },
+                        secondary: { main: '#dc004e' },
+                        background: { default: '#f4f6f8', paper: '#ffffff' },
+                        text: { primary: '#212B36', secondary: '#637381' },
+                      }
+                    : { // dark mode values
+                        primary: { main: '#90caf9' },
+                        secondary: { main: '#f48fb1' },
+                        background: { default: '#161C24', paper: '#212B36' },
+                        text: { primary: '#FFFFFF', secondary: '#919EAB' },
+                      }),
+            },
+            typography: { fontFamily: 'Roboto, sans-serif' },
+            components: {
+                MuiButton: { styleOverrides: { root: { textTransform: 'none', borderRadius: 8 }}},
+                MuiPaper: { styleOverrides: { root: { borderRadius: 12, backgroundImage: 'none' }}},
+                MuiDataGrid: { styleOverrides: { root: { border: 'none' }}},
+            },
+        }),
+    [mode]);
+
+    return (
+        <ThemeModeContext.Provider value={colorMode}>
+            {children(theme)}
+        </ThemeModeContext.Provider>
+    );
+};
+
+export const useThemeMode = () => useContext(ThemeModeContext);

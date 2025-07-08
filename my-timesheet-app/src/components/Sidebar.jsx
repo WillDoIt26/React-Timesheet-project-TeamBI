@@ -1,25 +1,28 @@
 // src/components/Sidebar.jsx
 
 import {
-  Drawer, Box, List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Divider, Typography, Avatar, Tooltip,
+  Drawer, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Typography, 
+  Avatar, Tooltip, Switch
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon, AccessTime as AccessTimeIcon, History as HistoryIcon,
   Work as WorkIcon, PendingActions as PendingActionsIcon, GroupAdd as GroupAddIcon,
-  Logout as LogoutIcon,
+  Logout as LogoutIcon, AccountCircle as AccountCircleIcon, Brightness4, Brightness7
 } from '@mui/icons-material';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
+import { useThemeMode } from '../context/ThemeContext';
+import { useTheme } from '@mui/material/styles';
 
 const drawerWidth = 240;
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['employee', 'manager', 'admin'] },
+  { text: 'Profile', icon: <AccountCircleIcon />, path: '/profile', roles: ['employee', 'manager', 'admin'] },
   { text: 'Timesheet Entry', icon: <AccessTimeIcon />, path: '/timesheet', roles: ['employee', 'manager', 'admin'] },
   { text: 'My History', icon: <HistoryIcon />, path: '/history', roles: ['employee', 'manager', 'admin'] },
-  { text: 'Projects', icon: <WorkIcon />, path: '/projects', roles: ['employee', 'manager', 'admin'] }, // CHANGED
-  { text: 'Pending Approvals', icon: <PendingActionsIcon />, path: '/pending-approvals', roles: ['manager', 'admin'] },
+  { text: 'Projects', icon: <WorkIcon />, path: '/projects', roles: ['employee', 'manager', 'admin'] },
+  { text: 'Pending Approvals', icon: <PendingActionsIcon />, path: '/pending-approvals', roles: ['manager'] },
   { text: 'User Management', icon: <GroupAddIcon />, path: '/user-management', roles: ['admin'] },
 ];
 
@@ -27,6 +30,8 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const colorMode = useThemeMode();
+  const theme = useTheme();
 
   const handleLogout = async () => {
     await logout();
@@ -36,7 +41,7 @@ const Sidebar = () => {
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <img src="/logo.svg" alt="logo" style={{ width: 40, height: 40, color: 'primary.main' }} />
+        <img src="/logo.svg" alt="logo" style={{ width: 40, height: 40, filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none' }} />
         <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
           TimeTrack
         </Typography>
@@ -45,23 +50,16 @@ const Sidebar = () => {
       <List sx={{ flexGrow: 1 }}>
         {menuItems.map((item) =>
           user?.role && item.roles.includes(user.role) && (
-            <ListItem key={item.text} disablePadding>
+            <ListItem key={item.text} disablePadding sx={{ my: 0.5 }}>
               <ListItemButton
                 component={RouterLink}
                 to={item.path}
                 selected={location.pathname === item.path || (item.path === '/timesheet' && location.pathname.startsWith('/timesheet'))}
                 sx={{
-                    borderRadius: 2,
-                    mx: 1,
+                    borderRadius: 2, mx: 1,
                     '&.Mui-selected': {
-                        backgroundColor: 'primary.main',
-                        color: 'primary.contrastText',
-                        '& .MuiListItemIcon-root': {
-                            color: 'primary.contrastText',
-                        },
-                        '&:hover': {
-                            backgroundColor: 'primary.dark',
-                        }
+                        backgroundColor: 'action.selected', fontWeight: 'fontWeightBold',
+                        '&:hover': { backgroundColor: 'action.hover' }
                     }
                 }}
               >
@@ -73,25 +71,21 @@ const Sidebar = () => {
         )}
       </List>
       <Box sx={{ p: 2 }}>
-        <Divider sx={{ mb: 2 }}/>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+            <Switch checked={theme.palette.mode === 'dark'} onChange={colorMode.toggleColorMode} />
+        </Box>
+        <Divider sx={{ my: 2 }}/>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                {user?.username?.[0].toUpperCase()}
-            </Avatar>
+            <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>{user?.username?.[0].toUpperCase()}</Avatar>
             <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>
-                    {user?.username}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{textTransform: 'capitalize'}}>
-                    {user?.role}
-                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>{user?.username}</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{textTransform: 'capitalize'}}>{user?.role}</Typography>
             </Box>
         </Box>
          <Tooltip title="End Session">
-             <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2, mx: 1, mt: 2 }}>
-              <ListItemIcon>
-                <LogoutIcon />
-              </ListItemIcon>
+             <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2, mx: 1, mt: 2, '&:hover': {backgroundColor: 'error.lighter'} }}>
+              <ListItemIcon><LogoutIcon color="error"/></ListItemIcon>
               <ListItemText primary="Logout" />
             </ListItemButton>
          </Tooltip>
@@ -103,8 +97,7 @@ const Sidebar = () => {
     <Drawer
       variant="permanent"
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
+        width: drawerWidth, flexShrink: 0,
         [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', borderRight: 'none' },
       }}
     >

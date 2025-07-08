@@ -50,14 +50,14 @@ router.post('/', isAuthenticated, (req, res) => {
   });
 });
 
-// Timesheet History (only own)
+// Timesheet History (only own) - UPDATED
 router.get('/history', isAuthenticated, (req, res) => {
   const user = req.session.user;
   const { start, end } = req.query;
   let query = `
-    SELECT t.timesheet_id, t.week_start, t.status, SUM(e.hours) as total_hours
+    SELECT t.timesheet_id, t.week_start, t.status, t.manager_comment, SUM(e.hours) as total_hours
     FROM timesheets t
-    JOIN time_entries e ON t.timesheet_id = e.timesheet_id
+    LEFT JOIN time_entries e ON t.timesheet_id = e.timesheet_id
     WHERE t.employee_id = ?
   `;
   let params = [user.id];
@@ -65,7 +65,7 @@ router.get('/history', isAuthenticated, (req, res) => {
     query += " AND t.week_start BETWEEN ? AND ?";
     params.push(start, end);
   }
-  query += " GROUP BY t.timesheet_id, t.week_start, t.status ORDER BY t.week_start DESC LIMIT 20";
+  query += " GROUP BY t.timesheet_id, t.week_start, t.status, t.manager_comment ORDER BY t.week_start DESC LIMIT 20";
   const conn = getConn();
   conn.execute({
     sqlText: query,
@@ -76,13 +76,13 @@ router.get('/history', isAuthenticated, (req, res) => {
         timesheet_id: row.TIMESHEET_ID,
         week_start: row.WEEK_START,
         status: row.STATUS,
-        total_hours: row.TOTAL_HOURS
+        total_hours: row.TOTAL_HOURS || 0, // Handle cases with no entries
+        manager_comment: row.MANAGER_COMMENT // ADDED
       }));
       res.json(result);
     }
   });
 });
-
 // Pending Timesheets (manager/admin only)
 router.get('/pending', isAuthenticated, authorizeRoles('manager', 'admin'), (req, res) => {
   const user = req.session.user;
