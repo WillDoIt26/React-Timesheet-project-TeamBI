@@ -1,4 +1,4 @@
-  // src/pages/TimesheetEntryPage.jsx
+// src/pages/TimesheetEntryPage.jsx
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -9,8 +9,9 @@ import {
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NotesIcon from '@mui/icons-material/Notes';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'; // Import Remove Icon
-import { startOfWeek, endOfWeek, addDays, format, getDay, subWeeks, addWeeks, parseISO } from 'date-fns';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+// *** MODIFICATION 1: Import the necessary date-fns functions ***
+import { startOfWeek, endOfWeek, addDays, format, getDay, subWeeks, addWeeks, parseISO, isPast, endOfISOWeek } from 'date-fns';
 import api from '../api/axiosConfig';
 
 const weekStartsOn = 1; // Monday
@@ -33,10 +34,13 @@ const TimesheetEntryPage = () => {
   const weekStart = startOfWeek(currentDate, { weekStartsOn });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn });
   const weekDates = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+
+  // *** MODIFICATION 2: Add the isEditable flag ***
+  const isEditable = !isPast(endOfISOWeek(weekStart)) || !!editId;
   
   const dailyTotals = Array(7).fill(0);
   timesheetRows.forEach(row => {
-    row.daily_hours.forEach((hour, i) => { dailyTotals[i] += hour; });
+    row.daily_hours.forEach((hour, i) => { dailyTotals[i] += parseFloat(hour) || 0; });
   });
 
   useEffect(() => {
@@ -50,7 +54,7 @@ const TimesheetEntryPage = () => {
             const editWeekDates = Array.from({ length: 7 }).map((_, i) => addDays(editWeekStart, i));
 
             const transformedRows = data.projects.map(p => {
-                const daily_hours = Array(7).fill(0);
+                const daily_hours = Array(7).fill(0);  
                 p.entries.forEach(entry => {
                     const entryDate = format(parseISO(entry.date), 'yyyy-MM-dd');
                     const dayIndex = editWeekDates.findIndex(d => format(d, 'yyyy-MM-dd') === entryDate);
@@ -96,7 +100,6 @@ const TimesheetEntryPage = () => {
     }
   };
 
-  // NEW FUNCTION: To remove a project row
   const handleRemoveRow = (rowIndex) => {
     const newRows = timesheetRows.filter((_, index) => index !== rowIndex);
     setTimesheetRows(newRows);
@@ -125,9 +128,13 @@ const TimesheetEntryPage = () => {
   };
 
   const handleConfirmSubmit = (status) => {
-    if (timesheetRows.length > 0 && timesheetRows.flatMap(r => r.daily_hours).reduce((a, b) => a + b, 0) === 0) {
-       setSnackbar({ open: true, message: 'Timesheet has projects but no hours. Please enter hours or save as a draft.', severity: 'warning' });
-       return;
+    if (timesheetRows.length === 0) {
+      setSnackbar({ open: true, message: 'Please add at least one project.', severity: 'warning' });
+      return;
+    }
+    if (timesheetRows.length > 0 && timesheetRows.flatMap(r => r.daily_hours).reduce((a, b) => a + b, 0) === 0 && status === 'submitted') {
+      setSnackbar({ open: true, message: 'Cannot submit a timesheet with zero hours.', severity: 'warning' });
+      return;
     }
     setSubmitAction(status);
     setConfirmDialogOpen(true);
@@ -155,8 +162,8 @@ const TimesheetEntryPage = () => {
         setSnackbar({ open: true, message: `Timesheet ${submitAction} successfully!`, severity: 'success' });
         navigate('/history');
     } catch (error) {
-       setSnackbar({ open: true, message: 'Failed to save timesheet.', severity: 'error' });
-       console.error("Failed to save timesheet", error);
+      setSnackbar({ open: true, message: 'Failed to save timesheet.', severity: 'error' });
+      console.error("Failed to save timesheet", error);
     }
   };
 
@@ -170,6 +177,14 @@ const TimesheetEntryPage = () => {
           <IconButton onClick={() => setCurrentDate(addWeeks(currentDate, 1))} disabled={!!editId}> <NavigateNextIcon /> </IconButton>
         </Box>
       </Box>
+
+      {/* *** MODIFICATION 3: Add the warning Alert based on the isEditable flag *** */}
+      {!isEditable && !editId && (
+        <Alert severity="warning" sx={{mb: 2}}>
+            You can only enter or modify time for the current or future weeks. Past weeks are view-only.
+        </Alert>
+      )}
+
       <TableContainer>
         <Table sx={{ minWidth: 650 }}>
           <TableHead>
@@ -177,50 +192,66 @@ const TimesheetEntryPage = () => {
               <TableCell sx={{ fontWeight: 'bold' }}>Project</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Notes</TableCell>
               {weekDates.map((date) => (
-                <TableCell key={format(date, 'T')} align="center" sx={{ fontWeight: 'bold', backgroundColor: [0,6].includes(getDay(date)) ? '#fafafa' : 'inherit' }}>
+                <TableCell key={format(date, 'T')} align="center" sx={{ fontWeight: 'bold', backgroundColor: [0,6].includes(getDay(date)) ? 'action.hover' : 'inherit' }}>
                   {format(date, 'EEE')} <br /> {format(date, 'd')}
                 </TableCell>
               ))}
               <TableCell align="center" sx={{ fontWeight: 'bold' }}>Total</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell> {/* NEW: Actions column header */}
+              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
+            {/* *** MODIFICATION 4: Add `disabled={!isEditable}` to all interactive elements *** */}
             {timesheetRows.map((row, rowIndex) => (
               <TableRow key={rowIndex}>
                 <TableCell>{row.name}</TableCell>
-                <TableCell><IconButton onClick={() => openNotesDialog(rowIndex)} color={row.notes ? 'primary' : 'default'}><NotesIcon /></IconButton></TableCell>
+                <TableCell><IconButton onClick={() => openNotesDialog(rowIndex)} color={row.notes ? 'primary' : 'default'} disabled={!isEditable}><NotesIcon /></IconButton></TableCell>
                 {row.daily_hours.map((hours, dayIndex) => (
                   <TableCell key={dayIndex}>
-                    <TextField type="number" size="small" inputProps={{ step: 0.25, min: 0, style: { textAlign: 'center' } }} sx={{ width: '80px' }} value={hours || ''} onChange={(e) => handleHourChange(rowIndex, dayIndex, e.target.value)} />
+                    <TextField
+                        type="number"
+                        size="small"
+                        inputProps={{ step: 0.25, min: 0, max: 24, style: { textAlign: 'center' } }}
+                        sx={{ width: '80px' }}
+                        value={hours || ''}
+                        onChange={(e) => handleHourChange(rowIndex, dayIndex, e.target.value)}
+                        disabled={!isEditable}
+                      />
                   </TableCell>
                 ))}
-                <TableCell align="center" sx={{ fontWeight: 'bold' }}>{row.daily_hours.reduce((a, h) => a + h, 0).toFixed(2)}</TableCell>
-                {/* NEW: Remove button cell */}
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>{row.daily_hours.reduce((a, h) => a + (parseFloat(h) || 0), 0).toFixed(2)}</TableCell>
                 <TableCell align="center">
                   <Tooltip title="Remove Project">
-                    <IconButton onClick={() => handleRemoveRow(rowIndex)} color="error" size="small">
-                      <RemoveCircleOutlineIcon />
-                    </IconButton>
+                    <span>
+                      <IconButton onClick={() => handleRemoveRow(rowIndex)} color="error" size="small" disabled={!isEditable}>
+                        <RemoveCircleOutlineIcon />
+                      </IconButton>
+                    </span>
                   </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
-            <TableRow sx={{ backgroundColor: '#f9f9f9' }}>
+            <TableRow sx={{ backgroundColor: 'action.hover' }}>
               <TableCell colSpan={2} sx={{ fontWeight: 'bold' }}>Daily Total</TableCell>
-              {dailyTotals.map((total, index) => (<TableCell key={index} align="center" sx={{ fontWeight: 'bold' }}>{total.toFixed(2)}</TableCell>))}
+              {dailyTotals.map((total, index) => <TableCell key={index} align="center" sx={{ fontWeight: 'bold' }}>{total.toFixed(2)}</TableCell>)}
               <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'primary.main' }}>{dailyTotals.reduce((a, b) => a + b, 0).toFixed(2)}</TableCell>
-              <TableCell></TableCell> {/* Empty cell for alignment */}
+              <TableCell></TableCell>
             </TableRow>
           </TableBody>
         </Table>
       </TableContainer>
       <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Autocomplete options={projects.filter(p => !timesheetRows.some(tr => tr.project_id === p.project_id))} getOptionLabel={(option) => option.name} sx={{ width: 300 }} value={null} onChange={(event, newValue) => { if (newValue) handleAddRow(newValue); }} renderInput={(params) => <TextField {...params} label="Add Project to Timesheet" />} />
+        <Autocomplete
+          disabled={!isEditable}
+          options={projects.filter(p => !timesheetRows.some(tr => tr.project_id === p.project_id))}
+          getOptionLabel={(option) => option.name} sx={{ width: 300 }} value={null}
+          onChange={(event, newValue) => { if (newValue) handleAddRow(newValue); }}
+          renderInput={(params) => <TextField {...params} label="Add Project to Timesheet" />}
+        />
       </Box>
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-        <Button variant="outlined" onClick={() => handleConfirmSubmit('draft')}>Save as Draft</Button>
-        <Button variant="contained" color="primary" onClick={() => handleConfirmSubmit('submitted')}>Submit for Approval</Button>
+        <Button variant="outlined" onClick={() => handleConfirmSubmit('draft')} disabled={!isEditable}>Save as Draft</Button>
+        <Button variant="contained" color="primary" onClick={() => handleConfirmSubmit('submitted')} disabled={!isEditable}>Submit for Approval</Button>
       </Box>
       <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
         <DialogTitle>Confirm Action</DialogTitle>
@@ -228,13 +259,15 @@ const TimesheetEntryPage = () => {
         <DialogActions><Button onClick={() => setConfirmDialogOpen(false)}>Cancel</Button><Button onClick={handleSubmit} color="primary" variant="contained">Confirm</Button></DialogActions>
       </Dialog>
       <Dialog open={notesDialogOpen} onClose={() => setNotesDialogOpen(false)} fullWidth>
-          <DialogTitle>Project Notes</DialogTitle>
+          <DialogTitle>Project Notes for {timesheetRows[currentNotes.rowIndex]?.name}</DialogTitle>
           <DialogContent>
-              <TextField autoFocus multiline rows={4} fullWidth value={currentNotes.value} onChange={(e) => setCurrentNotes({...currentNotes, value: e.target.value})} />
+              <TextField autoFocus multiline rows={4} fullWidth value={currentNotes.value || ''} onChange={(e) => setCurrentNotes({...currentNotes, value: e.target.value})} />
           </DialogContent>
           <DialogActions><Button onClick={() => setNotesDialogOpen(false)}>Cancel</Button><Button onClick={saveNotes}>Save Notes</Button></DialogActions>
       </Dialog>
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({...snackbar, open: false})}><Alert onClose={() => setSnackbar({...snackbar, open: false})} severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert></Snackbar>
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({...snackbar, open: false})}>
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+      </Snackbar>
     </Paper>
   );
 };

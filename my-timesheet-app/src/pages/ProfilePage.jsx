@@ -1,5 +1,4 @@
 // src/pages/ProfilePage.jsx
-
 import { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Paper, Grid, Snackbar, Alert, CircularProgress } from '@mui/material';
 import api from '../api/axiosConfig';
@@ -50,23 +49,22 @@ const ProfilePage = () => {
             </Typography>
             <Box component="form" onSubmit={handleSubmit}>
                 <Grid container spacing={3}>
-                    {/* Corrected Grid Syntax: 'item' prop removed */}
-                    <Grid xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <TextField name="full_name" label="Full Name" value={profile.full_name || ''} onChange={handleChange} fullWidth />
                     </Grid>
-                    <Grid xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <TextField name="designation" label="Designation (e.g., Software Engineer)" value={profile.designation || ''} onChange={handleChange} fullWidth />
                     </Grid>
-                    <Grid xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <TextField name="age" label="Age" type="number" value={profile.age || ''} onChange={handleChange} fullWidth />
                     </Grid>
-                    <Grid xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                         <TextField name="phone_number" label="Phone Number" value={profile.phone_number || ''} onChange={handleChange} fullWidth />
                     </Grid>
-                    <Grid xs={12}>
+                    <Grid item xs={12}>
                         <TextField name="address" label="Address" value={profile.address || ''} onChange={handleChange} fullWidth multiline rows={3} />
                     </Grid>
-                    <Grid xs={12} container justifyContent="flex-end">
+                    <Grid item xs={12} container justifyContent="flex-end">
                         <Button type="submit" variant="contained">Save Changes</Button>
                     </Grid>
                 </Grid>
@@ -77,5 +75,4 @@ const ProfilePage = () => {
         </Paper>
     );
 };
-
 export default ProfilePage;
