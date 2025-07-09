@@ -167,6 +167,18 @@ const TimesheetEntryPage = () => {
     }
   };
 
+  const handleHourChangeRange = (rowIndex, dayIndex, value) => {
+  const hours = parseFloat(value);
+  if (!isNaN(hours) && hours >= 0 && hours <= 24) {
+    const newRows = [...timesheetRows];
+    newRows[rowIndex].daily_hours[dayIndex] = hours;
+    setTimesheetRows(newRows);
+  } else {
+    console.error("Invalid input. Please enter a number between 0 and 24.");
+  }
+};
+
+
   return (
     <Paper sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -209,14 +221,37 @@ const TimesheetEntryPage = () => {
                 {row.daily_hours.map((hours, dayIndex) => (
                   <TableCell key={dayIndex}>
                     <TextField
-                        type="number"
-                        size="small"
-                        inputProps={{ step: 0.25, min: 0, max: 24, style: { textAlign: 'center' } }}
-                        sx={{ width: '80px' }}
-                        value={hours || ''}
-                        onChange={(e) => handleHourChange(rowIndex, dayIndex, e.target.value)}
-                        disabled={!isEditable}
-                      />
+                      type="number"
+                      size="small"
+                      inputProps={{
+                        inputMode: "decimal", // better virtual keyboard on mobile
+                        min: 0,
+                        max: 24,
+                        step: "any",
+                        style: { textAlign: 'center', MozAppearance: 'textfield' }, // hide spinner for Firefox
+                      }}
+                      sx={{
+                        width: '80px',
+                        '& input::-webkit-outer-spin-button': { display: 'none' },
+                        '& input::-webkit-inner-spin-button': { display: 'none' },
+                      }}
+                      value={hours ?? ''}
+                      onChange={(e) => handleHourChangeRange(rowIndex, dayIndex, e.target.value)}
+                      onKeyDown={(e) => {
+                        // Prevent non-numeric input except navigation, backspace, etc.
+                        const allowedKeys = [
+                          'Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowRight', 'Enter',
+                          '.', '-', // optional: allow for decimal/negative
+                        ];
+                        if (
+                          !allowedKeys.includes(e.key) &&
+                          (e.key < '0' || e.key > '9')
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
+
                   </TableCell>
                 ))}
                 <TableCell align="center" sx={{ fontWeight: 'bold' }}>{row.daily_hours.reduce((a, h) => a + (parseFloat(h) || 0), 0).toFixed(2)}</TableCell>
@@ -233,7 +268,8 @@ const TimesheetEntryPage = () => {
             ))}
             <TableRow sx={{ backgroundColor: 'action.hover' }}>
               <TableCell colSpan={2} sx={{ fontWeight: 'bold' }}>Daily Total</TableCell>
-              {dailyTotals.map((total, index) => <TableCell key={index} align="center" sx={{ fontWeight: 'bold' }}>{total.toFixed(2)}</TableCell>)}
+              {/* {dailyTotals.map((total, index) => <TableCell key={index} align="center" sx={{ fontWeight: 'bold' }}>{total.toFixed(2)}</TableCell>)} */}
+              {dailyTotals.map((total, index) => <TableCell key={index} align="center" sx={{ fontWeight: 'bold', backgroundColor: total < 8 ? '#ffe5e5' : 'inherit', color: total < 8 ? 'error.main' : 'inherit' }}>{total.toFixed(2)}</TableCell>)}
               <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'primary.main' }}>{dailyTotals.reduce((a, b) => a + b, 0).toFixed(2)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
