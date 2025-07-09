@@ -36,7 +36,8 @@ const TimesheetEntryPage = () => {
   const weekDates = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
 
   // *** MODIFICATION 2: Add the isEditable flag ***
-  const isEditable = !isPast(endOfISOWeek(weekStart)) || !!editId;
+  const isEditable = !isPast(endOfISOWeek(weekStart)) && 
+  weekStart <= new Date() || !!editId;
   
   const dailyTotals = Array(7).fill(0);
   timesheetRows.forEach(row => {
@@ -193,7 +194,7 @@ const TimesheetEntryPage = () => {
       {/* *** MODIFICATION 3: Add the warning Alert based on the isEditable flag *** */}
       {!isEditable && !editId && (
         <Alert severity="warning" sx={{mb: 2}}>
-            You can only enter or modify time for the current or future weeks. Past weeks are view-only.
+            You can only enter or modify time for the current week. Past and future weeks are view-only.
         </Alert>
       )}
 
