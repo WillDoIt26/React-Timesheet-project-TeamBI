@@ -1,13 +1,14 @@
 // src/components/Sidebar.jsx
 
 import {
-  Drawer, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Typography, 
+  Drawer, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Typography,
   Avatar, Tooltip, Switch
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon, AccessTime as AccessTimeIcon, History as HistoryIcon,
   Work as WorkIcon, PendingActions as PendingActionsIcon, GroupAdd as GroupAddIcon,
-  Logout as LogoutIcon, AccountCircle as AccountCircleIcon, Brightness4, Brightness7
+  Logout as LogoutIcon, AccountCircle as AccountCircleIcon, Brightness4, Brightness7,
+  Groups as MyTeamIcon
 } from '@mui/icons-material';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
@@ -19,6 +20,7 @@ const drawerWidth = 240;
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['employee', 'manager', 'admin'] },
   { text: 'Profile', icon: <AccountCircleIcon />, path: '/profile', roles: ['employee', 'manager', 'admin'] },
+  { text: 'My Team', icon: <MyTeamIcon />, path: '/my-team', roles: ['manager'] },
   { text: 'Timesheet Entry', icon: <AccessTimeIcon />, path: '/timesheet', roles: ['employee', 'manager', 'admin'] },
   { text: 'My History', icon: <HistoryIcon />, path: '/history', roles: ['employee', 'manager', 'admin'] },
   { text: 'Projects', icon: <WorkIcon />, path: '/projects', roles: ['employee', 'manager', 'admin'] },
@@ -40,10 +42,10 @@ const Sidebar = () => {
 
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <img src="/logo.svg" alt="logo" style={{ width: 40, height: 40, filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none' }} />
-        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
-          TimeTrack
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 68 }}>
+        {/* The logo <img> tag has been removed */}
+        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+          Cozentus
         </Typography>
       </Box>
       <Divider />
@@ -71,9 +73,12 @@ const Sidebar = () => {
         )}
       </List>
       <Box sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
-            <Switch checked={theme.palette.mode === 'dark'} onChange={colorMode.toggleColorMode} />
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', mb: 1 }}>
+            <Typography variant="body2" sx={{display: 'flex', alignItems: 'center'}}>
+              {theme.palette.mode === 'dark' ? <Brightness7 sx={{mr: 1}} /> : <Brightness4 sx={{mr: 1}} />}
+              Theme
+            </Typography>
+            <Switch edge="end" checked={theme.palette.mode === 'dark'} onChange={colorMode.toggleColorMode} />
         </Box>
         <Divider sx={{ my: 2 }}/>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
