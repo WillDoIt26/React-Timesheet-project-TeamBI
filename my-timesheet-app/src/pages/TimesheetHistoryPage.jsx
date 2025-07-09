@@ -1,10 +1,9 @@
 // src/pages/TimesheetHistoryPage.jsx
-
 import { useState, useEffect } from 'react';
 import {
     Box, Typography, CircularProgress, Paper, Chip, Button, Tooltip,
     Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
-    IconButton // <-- THE MISSING IMPORT IS NOW ADDED HERE
+    IconButton // Correctly imported
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { format } from 'date-fns';
@@ -30,25 +29,27 @@ const TimesheetHistoryPage = () => {
     const [currentComment, setCurrentComment] = useState('');
     const navigate = useNavigate();
 
-    const fetchHistory = async () => {
-        setLoading(true);
-        try {
-            const response = await api.get('/timesheet/history');
-            setHistory(response.data.map(item => ({ ...item, id: item.timesheet_id })));
-        } catch (error) {
-            console.error("Failed to fetch timesheet history", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchHistory = async () => {
+            setLoading(true);
+            try {
+                const response = await api.get('/timesheet/history');
+                const formattedData = response.data.map(item => ({
+                    ...item,
+                    id: item.timesheet_id // Ensure every row has a unique 'id' property
+                }));
+                setHistory(formattedData);
+            } catch (error) {
+                console.error("Failed to fetch timesheet history", error);
+                setHistory([]); // Prevent crash on error
+            } finally {
+                setLoading(false);
+            }
+        };
         fetchHistory();
     }, []);
 
-    const handleEdit = (id) => {
-        navigate(`/timesheet?edit=${id}`);
-    };
+    const handleEdit = (id) => navigate(`/timesheet?edit=${id}`);
 
     const handleSubmitDraft = async (id) => {
         try {
@@ -65,7 +66,7 @@ const TimesheetHistoryPage = () => {
     };
 
     const columns = [
-        { field: 'timesheet_id', headerName: 'ID', width: 90 },
+        { field: 'id', headerName: 'ID', width: 90 },
         { field: 'week_start', headerName: 'Week Starting', width: 180, renderCell: (params) => format(new Date(params.value), 'MMM d, yyyy') },
         { field: 'total_hours', headerName: 'Total Hours', width: 130, type: 'number' },
         { field: 'status', headerName: 'Status', width: 120, renderCell: (params) => getStatusChip(params.value) },
@@ -96,16 +97,18 @@ const TimesheetHistoryPage = () => {
     return (
         <Paper sx={{ p: 2, height: '85vh', width: '100%' }}>
             <Typography variant="h4" gutterBottom>My Timesheet History</Typography>
-            <DataGrid rows={history} columns={columns} pageSize={10} rowsPerPageOptions={[10]} disableSelectionOnClick autoHeight />
-            
+            <DataGrid
+                rows={history}
+                columns={columns}
+                initialState={{ pagination: { paginationModel: { pageSize: 10 } }}}
+                pageSizeOptions={[10, 25, 50]}
+                disableRowSelectionOnClick
+                autoHeight
+            />
             <Dialog open={commentOpen} onClose={() => setCommentOpen(false)}>
                 <DialogTitle>Manager's Comment</DialogTitle>
-                <DialogContent>
-                    <DialogContentText sx={{whiteSpace: "pre-wrap"}}>{currentComment}</DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setCommentOpen(false)}>Close</Button>
-                </DialogActions>
+                <DialogContent><DialogContentText sx={{whiteSpace: "pre-wrap"}}>{currentComment}</DialogContentText></DialogContent>
+                <DialogActions><Button onClick={() => setCommentOpen(false)}>Close</Button></DialogActions>
             </Dialog>
         </Paper>
     );
