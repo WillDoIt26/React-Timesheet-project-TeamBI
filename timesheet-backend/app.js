@@ -19,6 +19,11 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// **CRITICAL**: Serve static files from the 'public' directory.
+// This allows the frontend to access http://<your_server>/uploads/avatars/image.png
+app.use(express.static('public')); 
+
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,

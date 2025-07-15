@@ -1,5 +1,4 @@
 // src/components/Sidebar.jsx
-
 import {
   Drawer, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Typography,
   Avatar, Tooltip, Switch
@@ -14,6 +13,9 @@ import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import { useThemeMode } from '../context/ThemeContext';
 import { useTheme } from '@mui/material/styles';
+import { serverBaseUrl } from '../api/axiosConfig'; // Import server base URL
+import { useState, useEffect } from 'react';
+import api from '../api/axiosConfig';
 
 const drawerWidth = 240;
 
@@ -34,6 +36,26 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const colorMode = useThemeMode();
   const theme = useTheme();
+  const [avatarUrl, setAvatarUrl] = useState('');
+
+  useEffect(() => {
+    const fetchAvatar = async () => {
+        if(user?.id) {
+            try {
+                // Fetch fresh profile data specifically for the avatar
+                const { data } = await api.get('/profile');
+                if (data.avatar_url) {
+                    setAvatarUrl(`${serverBaseUrl}${data.avatar_url}`);
+                }
+            } catch (error) {
+                console.error("Could not fetch avatar for sidebar");
+            }
+        }
+    };
+    fetchAvatar();
+    // Re-fetch avatar if the path becomes /profile, indicating a potential change
+  }, [user, location.pathname]);
+
 
   const handleLogout = async () => {
     await logout();
@@ -43,16 +65,8 @@ const Sidebar = () => {
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 68, gap: 1.5 }}>
-          <img src="/logoo.png" alt="Cozentus Logo" style={{ height: '35px' }} />
-          <Typography
-            variant="h5"
-            component="div"
-            sx={{
-              fontWeight: 'bold',
-              color: 'primary.main', // This uses the theme's main blue color.
-              // For an even DEEPER blue, you could change this to 'primary.dark'
-            }}
-          >
+          <img src="/logo.svg" alt="Cozentus Logo" style={{ height: '35px' }} />
+          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
             Cozentus
           </Typography>
       </Box>
@@ -65,13 +79,7 @@ const Sidebar = () => {
                 component={RouterLink}
                 to={item.path}
                 selected={location.pathname === item.path || (item.path === '/timesheet' && location.pathname.startsWith('/timesheet'))}
-                sx={{
-                    borderRadius: 2, mx: 1,
-                    '&.Mui-selected': {
-                        backgroundColor: 'action.selected', fontWeight: 'fontWeightBold',
-                        '&:hover': { backgroundColor: 'action.hover' }
-                    }
-                }}
+                sx={{ borderRadius: 2, mx: 1, '&.Mui-selected': { backgroundColor: 'action.selected', fontWeight: 'fontWeightBold', '&:hover': { backgroundColor: 'action.hover' } } }}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
@@ -90,7 +98,7 @@ const Sidebar = () => {
         </Box>
         <Divider sx={{ my: 2 }}/>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>{user?.username?.[0].toUpperCase()}</Avatar>
+            <Avatar src={avatarUrl} sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>{user?.username?.[0].toUpperCase()}</Avatar>
             <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>{user?.username}</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{textTransform: 'capitalize'}}>{user?.role}</Typography>
@@ -107,13 +115,7 @@ const Sidebar = () => {
   );
 
   return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth, flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', borderRight: 'none' },
-      }}
-    >
+    <Drawer variant="permanent" sx={{ width: drawerWidth, flexShrink: 0, [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', borderRight: 'none' }, }}>
       {drawerContent}
     </Drawer>
   );
