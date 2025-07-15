@@ -17,24 +17,25 @@ const UserManagementPage = () => {
     const [formData, setFormData] = useState({ id: null, username: '', email: '', password: '', role: 'employee', assigned_manager_id: '' });
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
+    const fetchAllData = async () => {
+        setLoading(true);
+        try {
+            const [usersResponse, managersResponse] = await Promise.all([
+                api.get('/management/users'),
+                api.get('/management/managers')
+            ]);
+            setUsers(Array.isArray(usersResponse.data) ? usersResponse.data : []);
+            setManagers(Array.isArray(managersResponse.data) ? managersResponse.data : []);
+        } catch (error) {
+            console.error("Failed to fetch user management data", error);
+            setSnackbar({ open: true, message: 'Could not load user data.', severity: 'error' });
+            setUsers([]);
+            setManagers([]);
+        } finally { setLoading(false); }
+    };
+
     useEffect(() => {
         if (user && user.role === 'admin') {
-            const fetchAllData = async () => {
-                setLoading(true);
-                try {
-                    const [usersResponse, managersResponse] = await Promise.all([
-                        api.get('/management/users'),
-                        api.get('/management/managers')
-                    ]);
-                    setUsers(Array.isArray(usersResponse.data) ? usersResponse.data : []);
-                    setManagers(Array.isArray(managersResponse.data) ? managersResponse.data : []);
-                } catch (error) {
-                    console.error("Failed to fetch user management data", error);
-                    setSnackbar({ open: true, message: 'Could not load user data.', severity: 'error' });
-                    setUsers([]);
-                    setManagers([]);
-                } finally { setLoading(false); }
-            };
             fetchAllData();
         }
     }, [user]);
@@ -61,10 +62,11 @@ const UserManagementPage = () => {
                 setSnackbar({ open: true, message: 'User updated successfully!', severity: 'success' });
             } else {
                 if (!formData.password) { setSnackbar({ open: true, message: 'Password is required for new users.', severity: 'error' }); return; }
-                await api.post('/create-user', formData);
+                // CORRECTED ENDPOINT
+                await api.post('/management/users', formData);
                 setSnackbar({ open: true, message: 'User created successfully!', severity: 'success' });
             }
-            fetchAllData();
+            fetchAllData(); // Refresh data after any change
             handleClose();
         } catch (error) {
             setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to save user.', severity: 'error' });
@@ -87,6 +89,7 @@ const UserManagementPage = () => {
     ];
 
     if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
+    
     return (
         <Paper sx={{ p: 2, height: '85vh', width: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

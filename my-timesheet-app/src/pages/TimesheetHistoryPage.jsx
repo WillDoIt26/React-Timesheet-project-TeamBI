@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import {
     Box, Typography, CircularProgress, Paper, Chip, Button, Tooltip,
     Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
-    IconButton // Correctly imported
+    IconButton
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { format } from 'date-fns';
@@ -29,23 +29,24 @@ const TimesheetHistoryPage = () => {
     const [currentComment, setCurrentComment] = useState('');
     const navigate = useNavigate();
 
+    const fetchHistory = async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/timesheet/history');
+            const formattedData = response.data.map(item => ({
+                ...item,
+                id: item.timesheet_id // Ensure every row has a unique 'id' property
+            }));
+            setHistory(formattedData);
+        } catch (error) {
+            console.error("Failed to fetch timesheet history", error);
+            setHistory([]); // Prevent crash on error
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchHistory = async () => {
-            setLoading(true);
-            try {
-                const response = await api.get('/timesheet/history');
-                const formattedData = response.data.map(item => ({
-                    ...item,
-                    id: item.timesheet_id // Ensure every row has a unique 'id' property
-                }));
-                setHistory(formattedData);
-            } catch (error) {
-                console.error("Failed to fetch timesheet history", error);
-                setHistory([]); // Prevent crash on error
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchHistory();
     }, []);
 
@@ -53,10 +54,16 @@ const TimesheetHistoryPage = () => {
 
     const handleSubmitDraft = async (id) => {
         try {
-            await api.put(`/timesheet/${id}`, { status: 'submitted', projects: [] });
+            // CRITICAL FIX: Only update the status. Do NOT send the `projects` array.
+            // Sending `projects: undefined` (by not including it) prevents the backend
+            // PUT endpoint from clearing the existing time entries. This call now
+            // correctly only changes the status from 'draft' to 'submitted'.
+            await api.put(`/timesheet/${id}`, { status: 'submitted' });
+            // Refresh the data to show the updated status
             fetchHistory();
         } catch (error) {
             console.error("Failed to submit draft", error);
+            // Optionally, show a snackbar error to the user
         }
     };
 
@@ -68,7 +75,7 @@ const TimesheetHistoryPage = () => {
     const columns = [
         { field: 'id', headerName: 'ID', width: 90 },
         { field: 'week_start', headerName: 'Week Starting', width: 180, renderCell: (params) => format(new Date(params.value), 'MMM d, yyyy') },
-        { field: 'total_hours', headerName: 'Total Hours', width: 130, type: 'number' },
+        { field: 'total_hours', headerName: 'Total Hours', width: 130, type: 'number', valueFormatter: (params) => (params.value || 0).toFixed(2) },
         { field: 'status', headerName: 'Status', width: 120, renderCell: (params) => getStatusChip(params.value) },
         {
             field: 'actions', headerName: 'Actions', flex: 1, sortable: false,

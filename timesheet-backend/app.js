@@ -5,14 +5,15 @@ const path = require('path');
 const cors = require('cors');
 require('dotenv').config();
 
-const { connectSnowflake } = require('./db');
+const { execute } = require('./db'); // Simplified import
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- 1. CORE MIDDLEWARE (Correct Order is Essential) ---
+// --- 1. CORE MIDDLEWARE ---
+// This setup is correct
 app.use(cors({
   origin: 'http://localhost:4200',
   credentials: true
@@ -25,43 +26,41 @@ app.use(session({
   cookie: { 
     maxAge: 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: false, 
+    secure: process.env.NODE_ENV === 'production', 
     sameSite: 'lax'
   }
 }));
 
-// --- 2. API ROUTES (Correct Mounting Order) ---
-app.use('/projects', require('./routes/projects'));
-app.use('/timesheet', require('./routes/timesheet'));
-app.use('/management', require('./routes/management'));
-app.use('/', require('./routes/auth')); 
+// --- 2. API ROUTES (WITH /api PREFIX) ---
+// CORRECTED: Add the /api prefix to all routes
+app.use('/api/projects', require('./routes/projects'));
+app.use('/api/timesheet', require('./routes/timesheet'));
+app.use('/api/management', require('./routes/management'));
+app.use('/api', require('./routes/auth'));
 
 // --- 3. API DOCUMENTATION (SWAGGER) ---
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: { title: 'Cozentus API', version: '1.0.0' },
-    servers: [{ url: `http://localhost:${PORT}` }],
+    // Update the server URL in Swagger to include the /api prefix
+    servers: [{ url: `http://localhost:${PORT}/api` }],
   },
   apis: ['./routes/*.js'],
 };
+// Update the swagger route as well
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJsdoc(swaggerOptions)));
 
-// // --- 4. SERVE REACT APP (For Production) ---
-// const reactBuildPath = path.join(__dirname, '..', 'my-timesheet-app', 'dist');
-// app.use(express.static(reactBuildPath));
-// app.get(/^\/(?!api|api-docs).*/, (req, res) => {
-//   res.sendFile(path.join(reactBuildPath, 'index.html'));
-// });
 
-// --- 5. SERVER STARTUP ---
-connectSnowflake((err) => {
-  if (err) {
-    console.error('FATAL: Could not connect to Snowflake. Server is not starting.');
+// --- 4. SERVER STARTUP ---
+execute('SELECT 1')
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`API documentation available at http://localhost:${PORT}/api-docs`);
+    });
+  })
+  .catch(err => {
+    console.error('FATAL: Could not connect to Snowflake. Server is not starting.', err);
     process.exit(1);
-  }
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-    console.log(`API documentation available at http://localhost:${PORT}/api-docs`);
   });
-});

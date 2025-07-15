@@ -1,16 +1,14 @@
-  // src/pages/TimesheetEntryPage.jsx
-
+// src/pages/TimesheetEntryPage.jsx
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField,
-  IconButton, Autocomplete, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip
+  IconButton, Autocomplete, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, CircularProgress
 } from '@mui/material';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NotesIcon from '@mui/icons-material/Notes';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-// *** MODIFICATION 1: Import the necessary date-fns functions ***
 import { startOfWeek, endOfWeek, addDays, format, getDay, subWeeks, addWeeks, parseISO, isPast, endOfISOWeek } from 'date-fns';
 import api from '../api/axiosConfig';
 
@@ -30,12 +28,12 @@ const TimesheetEntryPage = () => {
   
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [currentNotes, setCurrentNotes] = useState({ value: '', rowIndex: null });
+  const [isSaving, setIsSaving] = useState(false); // State to handle save/submit in progress
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn });
   const weekDates = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
 
-  // *** MODIFICATION 2: Add the isEditable flag ***
   const isEditable = !isPast(endOfISOWeek(weekStart)) || !!editId;
   
   const dailyTotals = Array(7).fill(0);
@@ -80,7 +78,6 @@ const TimesheetEntryPage = () => {
         loadTimesheetForEdit(editId);
     }
   }, [editId, navigate]);
-
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -132,7 +129,7 @@ const TimesheetEntryPage = () => {
       setSnackbar({ open: true, message: 'Please add at least one project.', severity: 'warning' });
       return;
     }
-    if (timesheetRows.length > 0 && timesheetRows.flatMap(r => r.daily_hours).reduce((a, b) => a + b, 0) === 0 && status === 'submitted') {
+    if (timesheetRows.length > 0 && dailyTotals.reduce((a, b) => a + b, 0) === 0 && status === 'submitted') {
       setSnackbar({ open: true, message: 'Cannot submit a timesheet with zero hours.', severity: 'warning' });
       return;
     }
@@ -142,6 +139,7 @@ const TimesheetEntryPage = () => {
 
   const handleSubmit = async () => {
     setConfirmDialogOpen(false);
+    setIsSaving(true); // Disable buttons
     const payload = {
       week_start: format(weekStart, 'yyyy-MM-dd'),
       status: submitAction,
@@ -162,8 +160,11 @@ const TimesheetEntryPage = () => {
         setSnackbar({ open: true, message: `Timesheet ${submitAction} successfully!`, severity: 'success' });
         navigate('/history');
     } catch (error) {
-      setSnackbar({ open: true, message: 'Failed to save timesheet.', severity: 'error' });
+      const errorMessage = error.response?.data?.error || 'Failed to save timesheet. Please check the data and try again.';
+      setSnackbar({ open: true, message: errorMessage, severity: 'error' });
       console.error("Failed to save timesheet", error);
+    } finally {
+        setIsSaving(false); // Re-enable buttons
     }
   };
 
@@ -178,7 +179,6 @@ const TimesheetEntryPage = () => {
         </Box>
       </Box>
 
-      {/* *** MODIFICATION 3: Add the warning Alert based on the isEditable flag *** */}
       {!isEditable && !editId && (
         <Alert severity="warning" sx={{mb: 2}}>
             You can only enter or modify time for the current or future weeks. Past weeks are view-only.
@@ -201,7 +201,6 @@ const TimesheetEntryPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {/* *** MODIFICATION 4: Add `disabled={!isEditable}` to all interactive elements *** */}
             {timesheetRows.map((row, rowIndex) => (
               <TableRow key={rowIndex}>
                 <TableCell>{row.name}</TableCell>
@@ -242,7 +241,7 @@ const TimesheetEntryPage = () => {
       </TableContainer>
       <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Autocomplete
-          disabled={!isEditable}
+          disabled={!isEditable || isSaving}
           options={projects.filter(p => !timesheetRows.some(tr => tr.project_id === p.project_id))}
           getOptionLabel={(option) => option.name} sx={{ width: 300 }} value={null}
           onChange={(event, newValue) => { if (newValue) handleAddRow(newValue); }}
@@ -250,8 +249,10 @@ const TimesheetEntryPage = () => {
         />
       </Box>
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-        <Button variant="outlined" onClick={() => handleConfirmSubmit('draft')} disabled={!isEditable}>Save as Draft</Button>
-        <Button variant="contained" color="primary" onClick={() => handleConfirmSubmit('submitted')} disabled={!isEditable}>Submit for Approval</Button>
+        <Button variant="outlined" onClick={() => handleConfirmSubmit('draft')} disabled={!isEditable || isSaving}>Save as Draft</Button>
+        <Button variant="contained" color="primary" onClick={() => handleConfirmSubmit('submitted')} disabled={!isEditable || isSaving}>
+            {isSaving && submitAction === 'submitted' ? <CircularProgress size={24} color="inherit" /> : 'Submit for Approval'}
+        </Button>
       </Box>
       <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
         <DialogTitle>Confirm Action</DialogTitle>
@@ -266,7 +267,9 @@ const TimesheetEntryPage = () => {
           <DialogActions><Button onClick={() => setNotesDialogOpen(false)}>Cancel</Button><Button onClick={saveNotes}>Save Notes</Button></DialogActions>
       </Dialog>
       <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({...snackbar, open: false})}>
-        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.message}</Alert>
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }} elevation={6} variant="filled">
+            {snackbar.message}
+        </Alert>
       </Snackbar>
     </Paper>
   );
