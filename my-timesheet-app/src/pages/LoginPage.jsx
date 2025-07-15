@@ -41,10 +41,10 @@ const LoginPage = () => {
         }}
       >
         <Avatar sx={{ m: 1, bgcolor: 'primary.main', width: 56, height: 56 }}>
-            <img src="/logo.svg" alt="logo" style={{ width: '60%', height: '60%' }} />
+            <img src="/logoo.png" alt="logo" style={{ width: '60%', height: '60%' }} />
         </Avatar>
         <Typography component="h1" variant="h5">
-          Sign in to TimeTrack
+          Sign in to Cozentus Timesheet
         </Typography>
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
           {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}

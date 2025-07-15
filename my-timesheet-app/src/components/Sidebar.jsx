@@ -42,11 +42,19 @@ const Sidebar = () => {
 
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 68 }}>
-        {/* The logo <img> tag has been removed */}
-        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-          Cozentus
-        </Typography>
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 68, gap: 1.5 }}>
+          <img src="/logoo.png" alt="Cozentus Logo" style={{ height: '35px' }} />
+          <Typography
+            variant="h5"
+            component="div"
+            sx={{
+              fontWeight: 'bold',
+              color: 'primary.main', // This uses the theme's main blue color.
+              // For an even DEEPER blue, you could change this to 'primary.dark'
+            }}
+          >
+            Cozentus
+          </Typography>
       </Box>
       <Divider />
       <List sx={{ flexGrow: 1 }}>
