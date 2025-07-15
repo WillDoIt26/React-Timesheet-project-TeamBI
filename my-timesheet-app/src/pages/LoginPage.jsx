@@ -40,8 +40,8 @@ const LoginPage = () => {
           backgroundColor: 'background.paper'
         }}
       >
-        <Avatar sx={{ m: 1, bgcolor: 'primary.main', width: 56, height: 56 }}>
-            <img src="/logoo.png" alt="logo" style={{ width: '60%', height: '60%' }} />
+        <Avatar sx={{ m: 1, bgcolor: 'white', width: 56, height: 56 }}>
+            <img src="/logoo.png" alt="logo" style={{ width: '70%', height: '70%' }} />
         </Avatar>
         <Typography component="h1" variant="h5">
           Sign in to Cozentus Timesheet
