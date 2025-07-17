@@ -68,12 +68,12 @@ const Sidebar = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 68, gap: 1.5 }}>
           <img
-            src={theme.palette.mode === 'dark' ? '/logo.png' : '/logoo.png'}
+            src={theme.palette.mode === 'dark' ? '/logoo.png' : '/logoo.png'}
             alt="Cozentus Logo"
             style={{ height: '40px' }}
           />
-          <img src="/logoo.png" alt="Cozentus Logo" style={{ height: '35px' }} />
-          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+  
+          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'dark blue' }}>
             Cozentus
           </Typography>
       </Box>
