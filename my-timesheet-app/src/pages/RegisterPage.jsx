@@ -34,16 +34,9 @@ const RegisterPage = () => {
 
   return (
     <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-          <LockOutlinedIcon />
+      <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', p: 3, borderRadius: 2, boxShadow: 3, backgroundColor: 'background.paper' }}>
+        <Avatar sx={{ m: 1, width: 56, height: 56 }}>
+            <img src="/logoo.png" alt="logo" style={{ width: '100%', height: '100%' }} />
         </Avatar>
         <Typography component="h1" variant="h5">
           Sign Up

@@ -30,10 +30,10 @@ const LoginPage = () => {
     <Container component="main" maxWidth="xs">
       <Box sx={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', p: 3, borderRadius: 2, boxShadow: 3, backgroundColor: 'background.paper' }}>
         <Avatar sx={{ m: 1, width: 56, height: 56 }}>
-            <img src="/logoo.png" alt="logo" style={{ width: '60%', height: '60%' }} />
+            <img src="/logoo.png" alt="logo" style={{ width: '100%', height: '100%' }} />
         </Avatar>
         <Typography component="h1" variant="h5">
-          Sign in to Cozentus
+          Sign in to Timesheet App
         </Typography>
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
           {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}

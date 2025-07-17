@@ -9,7 +9,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f4f6f8;
+  background-color: #EFEFEE; /* Company Grey */
+  color: #19415e; /* Company Dark Blue */
 }
 
 code {
@@ -28,10 +29,10 @@ code {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #bdbdbd;
+  background: #26a9be; /* Company Light Blue */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #888;
+  background: #19415e; /* Company Dark Blue */
 }
