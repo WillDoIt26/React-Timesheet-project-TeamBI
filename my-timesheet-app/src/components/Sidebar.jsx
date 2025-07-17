@@ -65,7 +65,11 @@ const Sidebar = () => {
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 68, gap: 1.5 }}>
-          <img src="/logo.svg" alt="Cozentus Logo" style={{ height: '35px' }} />
+          <img
+            src={theme.palette.mode === 'dark' ? '/logo.png' : '/logoo.png'}
+            alt="Cozentus Logo"
+            style={{ height: '40px' }}
+          />
           <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
             Cozentus
           </Typography>
