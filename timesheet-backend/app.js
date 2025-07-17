@@ -41,6 +41,7 @@ app.use(session({
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/timesheet', require('./routes/timesheet'));
 app.use('/api/management', require('./routes/management'));
+app.use('/api/reports', require('./routes/reports'));
 app.use('/api', require('./routes/auth'));
 
 // --- 3. API DOCUMENTATION (SWAGGER) ---

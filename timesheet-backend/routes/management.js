@@ -22,7 +22,7 @@ router.get('/my-team', isAuthenticated, authorizeRoles('manager'), async (req, r
 });
 
 // --- Admin-Specific Routes ---
-router.get('/users', isAuthenticated, authorizeRoles('admin'), async (req, res) => {
+router.get('/users', isAuthenticated, authorizeRoles('admin','manager'), async (req, res) => {
     const sqlText = `SELECT u.id, u.username, u.email, u.role, u.assigned_manager_id, m.username as manager_name
                      FROM USERS u LEFT JOIN USERS m ON u.assigned_manager_id = m.id
                      ORDER BY u.username`;

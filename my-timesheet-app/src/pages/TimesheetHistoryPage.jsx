@@ -35,7 +35,7 @@ const TimesheetHistoryPage = () => {
             const response = await api.get('/timesheet/history');
             const formattedData = response.data.map(item => ({
                 ...item,
-                id: item.timesheet_id // Ensure every row has a unique 'id' property
+                id: item.timesheet_id// <-- ADD THIS LINE! // Ensure every row has a unique 'id' property
             }));
             setHistory(formattedData);
         } catch (error) {
@@ -75,7 +75,14 @@ const TimesheetHistoryPage = () => {
     const columns = [
         { field: 'id', headerName: 'ID', width: 90 },
         { field: 'week_start', headerName: 'Week Starting', width: 180, renderCell: (params) => format(new Date(params.value), 'MMM d, yyyy') },
-        { field: 'total_hours', headerName: 'Total Hours', width: 130, type: 'number', valueFormatter: (params) => (params.value || 0).toFixed(2) },
+        {
+            field: 'total_hours',
+            headerName: 'Total Hours',
+            width: 130,
+            type: 'number',
+            renderCell: (params) => (params.value || 0).toFixed(2),
+            valueFormatter: (params) => (params.value || 0).toFixed(2)
+        },
         { field: 'status', headerName: 'Status', width: 120, renderCell: (params) => getStatusChip(params.value) },
         {
             field: 'actions', headerName: 'Actions', flex: 1, sortable: false,
@@ -107,7 +114,14 @@ const TimesheetHistoryPage = () => {
             <DataGrid
                 rows={history}
                 columns={columns}
-                initialState={{ pagination: { paginationModel: { pageSize: 10 } }}}
+                // --- THIS IS THE LINE TO MODIFY ---
+                initialState={{ 
+                    pagination: { paginationModel: { pageSize: 10 } },
+                    // Add this sorting configuration
+                    sorting: {
+                        sortModel: [{ field: 'week_start', sort: 'desc' }],
+                    },
+                }}
                 pageSizeOptions={[10, 25, 50]}
                 disableRowSelectionOnClick
                 autoHeight
