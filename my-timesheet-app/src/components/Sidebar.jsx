@@ -7,6 +7,7 @@ import {
   Dashboard as DashboardIcon, AccessTime as AccessTimeIcon, History as HistoryIcon,
   Work as WorkIcon, PendingActions as PendingActionsIcon, GroupAdd as GroupAddIcon,
   Logout as LogoutIcon, AccountCircle as AccountCircleIcon, Brightness4, Brightness7,
+  Assessment as AssessmentIcon,
   Groups as MyTeamIcon
 } from '@mui/icons-material';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
@@ -27,6 +28,7 @@ const menuItems = [
   { text: 'My History', icon: <HistoryIcon />, path: '/history', roles: ['employee', 'manager', 'admin'] },
   { text: 'Projects', icon: <WorkIcon />, path: '/projects', roles: ['employee', 'manager', 'admin'] },
   { text: 'Pending Approvals', icon: <PendingActionsIcon />, path: '/pending-approvals', roles: ['manager'] },
+  { text: 'Reports', icon: <AssessmentIcon />, path: '/reports', roles: ['manager', 'admin'] },
   { text: 'User Management', icon: <GroupAddIcon />, path: '/user-management', roles: ['admin'] },
 ];
 
@@ -65,7 +67,7 @@ const Sidebar = () => {
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 68, gap: 1.5 }}>
-          <img src="/logo.svg" alt="Cozentus Logo" style={{ height: '35px' }} />
+          <img src="/logoo.png" alt="Cozentus Logo" style={{ height: '35px' }} />
           <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
             Cozentus
           </Typography>
