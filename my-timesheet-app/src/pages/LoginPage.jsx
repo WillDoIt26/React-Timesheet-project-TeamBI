@@ -53,7 +53,7 @@ const LoginPage = () => {
             <Typography component="h1" variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
               Sign In
             </Typography>
-            <Typography color="text.secondary" sx={{ mb: 3 }}>
+            <Typography color="text.secondary" sx={{ mb: 3 }} align="center">
               Enter your credentials to access to Timesheet App
             </Typography>
             
