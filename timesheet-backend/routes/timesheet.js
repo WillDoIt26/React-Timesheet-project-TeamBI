@@ -2,7 +2,7 @@
 const express = require('express');
 const { isAuthenticated } = require('../middleware/auth');
 const { authorizeRoles } = require('../middleware/roles');
-const { execute } = require('../db');
+const { execute, transaction, executeInTransaction } = require('../db');
 const router = express.Router();
 
 
@@ -139,7 +139,7 @@ router.get('/:timesheet_id', isAuthenticated, async (req, res) => {
 
 // --- CORE TIMESHEET CRUD ---
 
-// DEFINITIVE FIX #1: Creating a new timesheet
+// DEFINITIVE FIX #1: Creating a new timesheet with transactions
 router.post('/', isAuthenticated, async (req, res) => {
     const { id: userId } = req.session.user;
     const { week_start, status = "draft", projects } = req.body;
@@ -149,40 +149,45 @@ router.post('/', isAuthenticated, async (req, res) => {
     }
 
     try {
-        // Step 1: Create the parent timesheet record
-        await execute(
-            `INSERT INTO TIMESHEETS (WEEK_START, EMPLOYEE_ID, STATUS) VALUES (?, ?, ?)`,
-            [week_start, userId, status]
-        );
+        const timesheet_id = await transaction(async (conn) => {
+            // Step 1: Create the parent timesheet record
+            await executeInTransaction(
+                conn,
+                `INSERT INTO TIMESHEETS (WEEK_START, EMPLOYEE_ID, STATUS) VALUES (?, ?, ?)`,
+                [week_start, userId, status]
+            );
 
-        // Step 2: Get the ID of the record we just inserted
-        const { rows: idRows } = await execute(
-            `SELECT TIMESHEET_ID FROM TIMESHEETS WHERE WEEK_START = ? AND EMPLOYEE_ID = ? ORDER BY CREATED_AT DESC LIMIT 1`,
-            [week_start, userId]
-        );
-        const timesheet_id = idRows?.[0]?.TIMESHEET_ID;
-        if (!timesheet_id) {
-            throw new Error("Failed to retrieve new timesheet ID after insert.");
-        }
+            // Step 2: Get the ID of the record we just inserted
+            const { rows: idRows } = await executeInTransaction(
+                conn,
+                `SELECT TIMESHEET_ID FROM TIMESHEETS WHERE WEEK_START = ? AND EMPLOYEE_ID = ? ORDER BY CREATED_AT DESC LIMIT 1`,
+                [week_start, userId]
+            );
+            const new_timesheet_id = idRows?.[0]?.TIMESHEET_ID;
+            if (!new_timesheet_id) {
+                throw new Error("Failed to retrieve new timesheet ID after insert.");
+            }
 
-        // Step 3: Insert time entries one-by-one (more reliable than batch)
-        if (projects && projects.length > 0) {
-            const sql = `INSERT INTO TIME_ENTRIES (TIMESHEET_ID, DATE, HOURS, PROJECT_ID, NOTES) VALUES (?, ?, ?, ?, ?);`;
-            for (const proj of projects) {
-                for (let i = 0; i < proj.daily_hours.length; i++) {
-                    const hours = proj.daily_hours[i];
-                    if (hours > 0) {
-                        await execute(sql, [
-                            timesheet_id,
-                            proj.dates[i],
-                            hours,
-                            proj.project_id,
-                            proj.notes || ""
-                        ]);
+            // Step 3: Insert time entries
+            if (projects && projects.length > 0) {
+                const sql = `INSERT INTO TIME_ENTRIES (TIMESHEET_ID, DATE, HOURS, PROJECT_ID, NOTES) VALUES (?, ?, ?, ?, ?);`;
+                for (const proj of projects) {
+                    for (let i = 0; i < proj.daily_hours.length; i++) {
+                        const hours = proj.daily_hours[i];
+                        if (hours > 0) {
+                            await executeInTransaction(conn, sql, [
+                                new_timesheet_id,
+                                proj.dates[i],
+                                hours,
+                                proj.project_id,
+                                proj.notes || ""
+                            ]);
+                        }
                     }
                 }
             }
-        }
+            return new_timesheet_id;
+        });
 
         res.status(201).json({ status: "success", timesheet_id });
     } catch (err) {
@@ -194,7 +199,7 @@ router.post('/', isAuthenticated, async (req, res) => {
     }
 });
 
-// DEFINITIVE FIX #2: Updating an existing timesheet
+// DEFINITIVE FIX #2: Updating an existing timesheet with transactions
 router.put('/:timesheet_id', isAuthenticated, async (req, res) => {
     const { timesheet_id } = req.params;
     const { id: userId } = req.session.user;
@@ -202,37 +207,40 @@ router.put('/:timesheet_id', isAuthenticated, async (req, res) => {
     if (!status) return res.status(400).json({ error: "Missing status" });
 
     try {
-        // Step 1: Always update the parent timesheet record's status.
-        const { stmt } = await execute(
-            `UPDATE TIMESHEETS SET STATUS = ? WHERE TIMESHEET_ID = ? AND EMPLOYEE_ID = ?`, 
-            [status, timesheet_id, userId]
-        );
-        if (stmt.getNumUpdatedRows() === 0) {
-          throw new Error("Timesheet not found or permission denied.");
-        }
+        await transaction(async (conn) => {
+            // Step 1: Always update the parent timesheet record's status.
+            const { stmt } = await executeInTransaction(
+                conn,
+                `UPDATE TIMESHEETS SET STATUS = ? WHERE TIMESHEET_ID = ? AND EMPLOYEE_ID = ?`,
+                [status, timesheet_id, userId]
+            );
+            if (stmt.getNumUpdatedRows() === 0) {
+              throw new Error("Timesheet not found or permission denied.");
+            }
 
-        // Step 2: ONLY if the `projects` array is sent, wipe and re-insert entries.
-        if (projects !== undefined && Array.isArray(projects)) {
-            await execute(`DELETE FROM TIME_ENTRIES WHERE TIMESHEET_ID = ?`, [timesheet_id]);
+            // Step 2: ONLY if the `projects` array is sent, wipe and re-insert entries.
+            if (projects !== undefined && Array.isArray(projects)) {
+                await executeInTransaction(conn, `DELETE FROM TIME_ENTRIES WHERE TIMESHEET_ID = ?`, [timesheet_id]);
 
-            // Re-insert time entries one-by-one (more reliable than batch)
-            const sql = `INSERT INTO TIME_ENTRIES (TIMESHEET_ID, DATE, HOURS, PROJECT_ID, NOTES) VALUES (?, ?, ?, ?, ?);`;
-            for (const proj of projects) {
-                for (let i = 0; i < proj.daily_hours.length; i++) {
-                    const hours = proj.daily_hours[i];
-                    if (hours > 0) {
-                        await execute(sql, [
-                            timesheet_id,
-                            proj.dates[i],
-                            hours,
-                            proj.project_id,
-                            proj.notes || ""
-                        ]);
+                // Re-insert time entries
+                const sql = `INSERT INTO TIME_ENTRIES (TIMESHEET_ID, DATE, HOURS, PROJECT_ID, NOTES) VALUES (?, ?, ?, ?, ?);`;
+                for (const proj of projects) {
+                    for (let i = 0; i < proj.daily_hours.length; i++) {
+                        const hours = proj.daily_hours[i];
+                        if (hours > 0) {
+                            await executeInTransaction(conn, sql, [
+                                timesheet_id,
+                                proj.dates[i],
+                                hours,
+                                proj.project_id,
+                                proj.notes || ""
+                            ]);
+                        }
                     }
                 }
             }
-        }
-        
+        });
+
         res.json({ status: "success", message: `Timesheet updated.` });
     } catch (err) {
         console.error("Timesheet update error:", err);
